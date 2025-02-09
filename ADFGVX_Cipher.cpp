@@ -1,211 +1,111 @@
 #include <iostream>
 #include <vector>
-#include <string>
 #include <unordered_set>
-#include <unordered_map>
+#include <string>
 #include <algorithm>
 
 using namespace std;
 
-const int maxValue = 6;
+const int MATRIX_SIZE = 6;
+const string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 vector<char> ADFGVX_COORDINATES = { 'A', 'D', 'F', 'G', 'V', 'X' };
 
-string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+// Генерация квадрата Полибия
+vector<vector<char>> polybiusSquareGeneration(const string& line) {
+    unordered_set<char> usedChars;
+    vector<vector<char>> matrix(MATRIX_SIZE, vector<char>(MATRIX_SIZE));
+    string combinedKey = line + ALPHABET;  // Ключ + алфавит
+    int index = 0;
 
-void polybiusSquareGeneration(vector<vector<string>>& matrix, const string& line);
-unordered_map<char, string> adfgvxTableGeneration(const vector<vector<string>>& matrix);
-unordered_map<string, char> reverseKeyTableGeneration(const vector<vector<string>>& polybiusSquare);
-string intermediateLineGeneration(const string& line, const unordered_map<char, string>& adfgvxTable);
-vector<vector<char>> keyTableGeneration(const string& line, int keyLength);
-string columnTransposition(const vector<vector<char>>& table, const string& keyLine, bool encrypt);
-string decodeIntermediateLineGeneration(const string& intermediateLine, const unordered_map<string, char>& reverseKeyTable);
-
-void polybiusSquareGeneration(vector<vector<string>>& matrix, const string& line) {
-    //line.erase(remove(line.begin(), line.end(), ' '), line.end());
-    int letterIndex = 0;
-    unordered_set<char> usedCharacters;
-
-    for (int rowIndex = 0; rowIndex < maxValue && letterIndex < line.length(); rowIndex++) {
-        for (int col = 0; col < maxValue && letterIndex < line.length(); col++) {
-            while (letterIndex < line.length() && line[letterIndex] == ' ') {
-                letterIndex++;
-            }
-            if (letterIndex >= line.length()) break;
-            char character = toupper(line[letterIndex]);
-
-            if (!usedCharacters.count(character)) {
-                matrix[rowIndex][col] = string(1, character);
-                usedCharacters.insert(character);
-            }
-            else {
-                col--;
-            }
-            letterIndex++;
+    for (char c : combinedKey) {
+        c = toupper(c);  // Преобразуем в верхний регистр
+        if (usedChars.find(c) == usedChars.end()) {  // Если символ ещё не встречался
+            matrix[index / MATRIX_SIZE][index % MATRIX_SIZE] = c;
+            usedChars.insert(c);
+            index++;
         }
     }
+    return matrix;
+}
 
-    int alphabetIndex = 0;
-    for (int rowIndex = 0; rowIndex < maxValue; rowIndex++) {
-        for (int col = 0; col < maxValue; col++) {
-            if (matrix[rowIndex][col] == "*") {
-                while (alphabetIndex < alphabet.length() && usedCharacters.count(alphabet[alphabetIndex])) {
-                    alphabetIndex++;
-                }
-                if (alphabetIndex < alphabet.length()) {
-                    matrix[rowIndex][col] = string(1, alphabet[alphabetIndex++]);
+// Вывод квадрата Полибия
+void printPolybiusSquare(const vector<vector<char>>& polybiusSquare) {
+    cout << "\nКвадрат Полибия:\n";
+    for (const auto& row : polybiusSquare) {
+        for (const auto& cell : row) {
+            cout << cell << " ";
+        }
+        cout << endl;
+    }
+}
+
+// Генерация пар ADFGVX
+string adfgvxPairsGeneration(const string& clearText, const vector<vector<char>>& keySquare) {
+    string resultTemp;
+    string adfgx = "ADFGX";
+
+    for (char c : clearText) {
+        for (size_t row = 0; row < keySquare.size(); row++) {
+            for (size_t col = 0; col < keySquare[row].size(); col++) {
+                if (keySquare[row][col] == c) {
+                    resultTemp += adfgx[row];  // Добавляем символ строки
+                    resultTemp += adfgx[col];  // Добавляем символ столбца
+                    break;  // Найден символ, переходим к следующему
                 }
             }
         }
     }
+    return resultTemp;
 }
 
-string adfgvxEncryption(const string& inputLine, const string& key) {
-    vector<vector<string>> polybiusSquare(maxValue, vector<string>(maxValue, "*"));
-    polybiusSquareGeneration(polybiusSquare, alphabet);
-    unordered_map<char, string> adfgvxTable = adfgvxTableGeneration(polybiusSquare);
-    string intermediateLine = intermediateLineGeneration(inputLine, adfgvxTable);
-    vector<vector<char>> keyTable = keyTableGeneration(intermediateLine, key.length());
+// Столбцовая транспозиция
+string columnTransposition(const string& keyWord, const string& text) {
+    vector<string> charMatrix(keyWord.length());
 
-    return columnTransposition(keyTable, key, true);
+    // 1. Инициализируем столбцы ключевыми буквами
+    for (size_t i = 0; i < keyWord.length(); i++) {
+        charMatrix[i] = string(1, keyWord[i]);  // Преобразуем символ в строку
+    }
+
+    // 2. Распределяем символы текста по колонкам циклично
+    int idx = 0;
+    for (char c : text) {
+        charMatrix[idx] += c;
+        idx = (idx + 1) % charMatrix.size();  // Улучшенное циклическое распределение
+    }
+
+    // 3. Сортируем колонки по первой букве
+    sort(charMatrix.begin(), charMatrix.end());
+
+    // 4. Формируем результат, убирая первую букву каждой колонки
+    string result;
+    for (const string& s : charMatrix) {
+        result += s.substr(1);
+    }
+
+    return result;
 }
 
-string adfgvxDecryption(const string& inputLine, const string& key) {
-    vector<vector<string>> polybiusSquare(maxValue, vector<string>(maxValue, "*"));
-    polybiusSquareGeneration(polybiusSquare, alphabet);
-    unordered_map<string, char> reverseKeyTable = reverseKeyTableGeneration(polybiusSquare);
+// Основная функция для шифрования ADFGVX
+string adfgvxEncryption(const string& clearText, const string& keyWord) {
+    // Шаг 1: Генерация квадрата Полибия
+    vector<vector<char>> keySquare = polybiusSquareGeneration(clearText);
 
-    vector<vector<char>> keyTable = keyTableGeneration(inputLine, key.length());
-    string intermediateLine = columnTransposition(keyTable, key, false);
+    // Шаг 2: Генерация пар ADFGVX
+    string adfgvxPairs = adfgvxPairsGeneration(clearText, keySquare);
 
-    return decodeIntermediateLineGeneration(intermediateLine, reverseKeyTable);
-}
+    // Шаг 3: Столбцовая транспозиция
+    string encryptedText = columnTransposition(keyWord, adfgvxPairs);
 
-unordered_map<char, string> adfgvxTableGeneration(const vector<vector<string>>& matrix) {
-    unordered_map<char, string> adfgvxTable;
-    for (int rowIndex = 0; rowIndex < maxValue; rowIndex++) {
-        for (int col = 0; col < maxValue; col++) {
-            char symbol = matrix[rowIndex][col][0];
-            adfgvxTable[symbol] = string(1, ADFGVX_COORDINATES[rowIndex]) + string(1, ADFGVX_COORDINATES[col]);
-        }
-    }
-    return adfgvxTable;
-}
-
-
-unordered_map<string, char> reverseKeyTableGeneration(const vector<vector<string>>& polybiusSquare) {
-    unordered_map<string, char> reverseKeyTable;
-    for (int rowIndex = 0; rowIndex < maxValue; rowIndex++) {
-        for (int col = 0; col < maxValue; col++) {
-            char symbol = polybiusSquare[rowIndex][col][0];
-            string coordinates = string(1, ADFGVX_COORDINATES[rowIndex]) + string(1, ADFGVX_COORDINATES[col]);
-            reverseKeyTable[coordinates] = symbol;
-        }
-    }
-    return reverseKeyTable;
-}
-
-string intermediateLineGeneration(const string& line, const unordered_map<char, string>& adfgvxTable) {
-    string intermediateLine;
-    for (char character : line) {
-        if (character != ' ') {
-            if (adfgvxTable.find(toupper(character)) != adfgvxTable.end()) {
-                intermediateLine += adfgvxTable.at(toupper(character));
-            }
-        }
-    }
-    return intermediateLine;
-}
-
-vector<vector<char>> keyTableGeneration(const string& line, int keyLength) {
-    int rowsNumber = (line.length() + keyLength - 1) / keyLength;
-    vector<vector<char>> keyTable(rowsNumber, vector<char>(keyLength, '*'));
-
-    int lineIndex = 0;
-    for (int rowIndex = 0; rowIndex < rowsNumber; rowIndex++) {
-        for (int col = 0; col < keyLength; col++) {
-            if (lineIndex < line.length()) {
-                keyTable[rowIndex][col] = line[lineIndex++];
-            }
-        }
-    }
-    return keyTable;
-}
-
-string columnTransposition(const vector<vector<char>>& table, const string& keyLine, bool encrypt) {
-    vector<pair<char, int>> sortedKey;
-    for (int keyIndex = 0; keyIndex < keyLine.length(); keyIndex++) {
-        sortedKey.push_back({ toupper(keyLine[keyIndex]), keyIndex });
-    }
-    sort(sortedKey.begin(), sortedKey.end());
-
-    string outputLine;
-    if (encrypt) {
-        for (const auto& pair : sortedKey) {
-            int columnIndex = pair.second;
-            for (int rowIndex = 0; rowIndex < table.size(); rowIndex++) {
-                if (table[rowIndex][columnIndex] != '*') {
-                    outputLine += table[rowIndex][columnIndex];
-                }
-            }
-        }
-    }
-    else {
-        int rowsNumber = table.size();
-        int columnsNumber = keyLine.length();
-        vector<vector<char>> sortedTable(rowsNumber, vector<char>(columnsNumber, '*'));
-
-        int index = 0;
-        for (const auto& pair : sortedKey) {
-            int columnIndex = pair.second;
-            for (int rowIndex = 0; rowIndex < rowsNumber; rowIndex++) {
-                if (index < table.size() * table[0].size()) {
-                    sortedTable[rowIndex][columnIndex] = table[index / columnsNumber][index % columnsNumber];
-                    index++;
-                }
-            }
-        }
-
-        for (int rowIndex = 0; rowIndex < rowsNumber; rowIndex++) {
-            for (int columnIndex = 0; columnIndex < columnsNumber; columnIndex++) {
-                if (sortedTable[rowIndex][columnsNumber] != '*') {
-                    outputLine += sortedTable[rowIndex][columnsNumber];
-                }
-            }
-        }
-    }
-    return outputLine;
-}
-
-string decodeIntermediateLineGeneration(const string& intermediateLine, const unordered_map<string, char>& reverseKeyTable) {
-    string originalMessage = "";
-    for (size_t i = 0; i < intermediateLine.length(); i += 2) {
-        string pair = intermediateLine.substr(i, 2);
-        if (reverseKeyTable.find(pair) != reverseKeyTable.end()) {
-            originalMessage += reverseKeyTable.at(pair);
-        }
-        else {
-            originalMessage += '?';
-        }
-    }
-    return originalMessage;
+    return encryptedText;
 }
 
 int main() {
-    string keyLine, inputLine, outputLine;
+    string keyWord = "KEY";
+    string clearText = "HELLOWORLD";
 
-    cout << "Enter line: ";
-    cin >> inputLine;
-    cout << "Enter key: ";
-    cin >> keyLine;
-    outputLine = adfgvxEncryption(inputLine, keyLine);
-    cout << "Encrypted: " << outputLine << endl;
-
-    cout << "Enter encrypted line: ";
-    cin >> inputLine;
-    cout << "Enter key: ";
-    cin >> keyLine;
-    outputLine = adfgvxDecryption(inputLine, keyLine);
-    cout << "Decrypted: " << outputLine << endl;
+    string encrypted = adfgvxEncryption(clearText, keyWord);
+    cout << "Зашифрованный текст: " << encrypted << endl;
 
     return 0;
 }

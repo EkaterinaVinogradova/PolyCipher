@@ -30,6 +30,9 @@
     <ClCompile Include="ColumnarTransposition_Cipher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="adfgvx_beta.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ADFGVXcipher.h">

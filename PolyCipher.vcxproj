@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ADFGVX_Cipher.cpp" />
+    <ClCompile Include="adfgvx_beta.cpp" />
     <ClCompile Include="ColumnarTransposition_Cipher.cpp" />
     <ClCompile Include="GLOBALS.cpp" />
     <ClCompile Include="Playfair_Cipher.cpp" />

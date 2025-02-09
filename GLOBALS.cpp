@@ -1,0 +1,4 @@
+#include "GLOBALS.h"
+
+const int MATRIX_SIZE = 6;
+const std::string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
